@@ -1,0 +1,116 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'application'
+    id 'jacoco'
+    id 'org.barfuin.gradle.jacocolog' version '1.0.1'
+}
+
+group 'org.example'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    // https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api
+    compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation 'com.google.code.gson:gson:2.9.0'
+    // https://mvnrepository.com/artifact/org.projectlombok/lombok
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    // https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-catalina
+    implementation 'org.apache.tomcat:tomcat-catalina:10.1.20'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.20.0'
+// https://mvnrepository.com/artifact/ch.qos.logback/logback-core
+    implementation 'ch.qos.logback:logback-core:1.5.3'
+    // Залежності Thymeleaf
+    implementation 'org.thymeleaf:thymeleaf:3.1.0.RELEASE'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    // https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
+}
+
+// Налаштування для збірки WAR файлу
+war {
+    // Назва згенерованого WAR файлу
+    archiveFileName = 'thymeleaf-1.0.war'
+    // Назва контексту
+    webAppDirName = 'src/main/webapp'
+}
+test {
+    useJUnitPlatform()
+}
+jar {
+    manifest {
+        attributes "Main-Class": "TimezoneServlet"
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+jar {
+    duplicatesStrategy = 'exclude'
+}
+
+
+application {
+    mainClass = 'TimezoneServlet'
+}
+
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+
+test {
+    // Enable JUnit 5 (Gradle 4.6+).
+    useJUnitPlatform()
+
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+    jacoco {
+        destinationFile = layout.buildDirectory.file('jacoco/jacocoTest.exec').get().asFile
+        classDumpDir = layout.buildDirectory.dir('jacoco/classpathdumps').get().asFile
+    }
+}
+
+
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+}
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.7
+            }
+        }
+
+        rule {
+            enabled = false
+            element = 'CLASS'
+            includes = ['org.gradle.*']
+
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 0.7
+            }
+        }
+    }
+}
